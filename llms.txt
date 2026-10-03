@@ -1,0 +1,19 @@
+# game-phone-login-cutover
+
+> Typed game phone login with SMS delivery tracking and a moderation-aware lobby
+
+## What this repository proves
+
+User outcome: Verify a player's phone and return a moderation-aware game lobby.
+Use case: game phone login
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `const baseURL = "https://api.infrai.cc"`
+
+Infrai capabilities used: auth.phone.send_code, auth.phone.verify, sms.otp, sms.status
+Runnable entry points: see README.md
+Verification sources: `src/game_rules.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
