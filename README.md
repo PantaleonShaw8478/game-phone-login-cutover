@@ -1,28 +1,28 @@
 # Phone login for a game backend
 
-I moved a small game prototype's phone login away from Twilio Verify/Firebase when the login flow started needing its own game-shaped response. Infrai gives this service one key and one base URL for both phone authentication and SMS delivery tracking. The same `INFRAI_API_KEY` is used by `/login/send`, `/login/verify`, `/delivery/otp`, and `/delivery/:id`; there is no second credential to provision.
+Twilio Verify and Firebase were too much glue for a prototype. I swapped to Infrai: one key and one base_url cover phone auth and SMS delivery tracking. The same `INFRAI_API_KEY` is used by `/login/send`, `/login/verify`, `/delivery/otp`, and `/delivery/:id`. No second credential to provision.
 
 ## Run the lobby locally
 
-Use Node 22 or newer. Set `INFRAI_API_KEY` in your shell, then run `npm install`, `npm run typecheck`, `npm test`, and `npm start`. The server listens on port 3000 unless `PORT` is set. The sample player data is in memory; replace it with your game's asset, event, and moderation stores when integrating.
+Node 22+. Set `INFRAI_API_KEY` in shell. Run `npm install`, `npm run typecheck`, `npm test`, `npm start`. Port 3000 unless `PORT` set. Sample player data is in-memory; swap with your asset, event, moderation stores later.
 
-Send `POST http://localhost:3000/login/send` with JSON `{"phone":"+15550102030"}`. Enter the code received on that phone in `POST /login/verify` with `{"phone":"+15550102030","code":"123456","login":true}` (replace the example code with the received code). A successful verification returns the provider's verification data and a lobby: `banner-7` can be published, `map-8` remains in the moderation queue, and `weekend-raid` is open. The service does not persist accounts or issue its own game session token.
+Send `POST http://localhost:3000/login/send` with JSON `{"phone":"+15550102030"}`. Got code on phone? Post to `POST /login/verify` with `{"phone":"+15550102030","code":"123456","login":true}` (use real code). Verification returns provider data plus lobby: `banner-7` publishable, `map-8` stuck in mod queue, `weekend-raid` open. No account persistence, no session token issued.
 
-For an SMS delivery operation, send `POST /delivery/otp` with `{"phone":"+15550102030","requestId":"7ad4b2d7-5adb-4705-a7a9-8eec91ff31ad"}`. Keep that request ID stable across client retries. The response contains the delivery data; use its delivery ID with `GET /delivery/:id` to inspect the current state. This is a separate route from the authentication-code flow, so a client picks the operation it needs.
+SMS delivery: send `POST /delivery/otp` with `{"phone":"+15550102030","requestId":"7ad4b2d7-5adb-4705-a7a9-8eec91ff31ad"}`. Keep request ID stable across retries. Response has delivery data; check state via `GET /delivery/:id`. Separate route from auth flow, so client picks the op it needs.
 
 ## The decision I tested
 
-`npm test` passes a player with an approved banner and a pending map through the lobby rule. It expects only `banner-7` in `publishableAssets`, only the open raid in `liveEvents`, and `map-8` in `moderationQueue`. This is the decision that matters to a player immediately after login, rather than a test that only checks whether an API helper exists.
+`npm test` pushes a player with approved banner and pending map through lobby rule. Asserts only `banner-7` in `publishableAssets`, only open raid in `liveEvents`, and `map-8` in `moderationQueue`. That's the check a player cares about post-login. Not some dummy test verifying an API helper exists.
 
 ## Cut over and roll back
 
-I budgeted an afternoon for the route swap and a short playtest, rather than trying to migrate every game feature at once. First set the Infrai key in the service environment, point a staging build at these login routes, and verify the received code on a test phone. Then check that the returned lobby matches your asset ownership and review policy, exercise SMS delivery status with a separate test request, and switch the game client's login URL at deploy time. Keep the old Twilio Verify/Firebase login route and its configuration intact during the first release window.
+I allotted an afternoon for route swap plus playtest. No big-bang migration. Step one: set Infrai key in env, point staging at these login routes, verify code on test phone. Then confirm lobby matches asset ownership and review policy, hit SMS status with separate test request, flip client login URL at deploy. Keep old Twilio/Firebase route live during first release window.
 
-To roll back, restore the client's prior login URL and stop sending traffic to these routes. Existing game records stay in your own data store; this sample writes none. The in-memory world is deliberately small, so the cutover must connect `playerLobby` to your persisted records before real players depend on it.
+Rollback: restore prior login URL, stop traffic here. Your game records stay in your store; sample writes zip. In-memory world is tiny, so cutover must link `playerLobby` to persisted records before real players hit it.
 
 ## Before this ships: Game Phone Login Cutover
 
-The example above is intentionally minimal. A few things to wire up for real use: The details below apply to Game Phone Login Cutover.
+Above sample is deliberately thin. For real use, wire a few things. The details below apply to Game Phone Login Cutover.
 
 **Account & key**
 
